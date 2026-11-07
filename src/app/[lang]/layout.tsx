@@ -1,12 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Cinzel, Cormorant_Garamond, Inter } from "next/font/google";
 import { getDictionary, homePath, isLocale, locales, type Locale } from "@/lib/i18n";
 import { site } from "@/lib/site";
 import "../globals.css";
 
-const cinzel = Cinzel({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-cinzel", display: "swap" });
-const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600"], variable: "--font-inter", display: "swap" });
-const cormorant = Cormorant_Garamond({ subsets: ["latin"], weight: ["400", "500"], style: ["italic"], variable: "--font-cormorant", display: "swap" });
+/**
+ * Fonts are loaded by the visitor's browser straight from Google Fonts (not downloaded at build time),
+ * so a Google Fonts hiccup can never make a Vercel build fail.
+ */
+const FONTS_CSS =
+  "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Inter:wght@300;400;500;600&display=swap";
+const fontVars = {
+  "--font-cinzel": "'Cinzel'",
+  "--font-inter": "'Inter'",
+  "--font-cormorant": "'Cormorant Garamond'",
+} as React.CSSProperties;
+
+/** A wrong NEXT_PUBLIC_SITE_URL (e.g. without https://) must not break the build: fall back to localhost. */
+function safeBase(url: string) {
+  try {
+    return new URL(url);
+  } catch {
+    try {
+      return new URL(`https://${url}`);
+    } catch {
+      return new URL("http://localhost:3000");
+    }
+  }
+}
 
 export const dynamicParams = false;
 export function generateStaticParams() {
@@ -25,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const t = getDictionary(lang);
   const languages = Object.fromEntries(locales.map((l) => [l, homePath(l)]));
   return {
-    metadataBase: new URL(site.url),
+    metadataBase: safeBase(site.url),
     title: t.meta.title,
     description: t.meta.description,
     alternates: { canonical: homePath(lang), languages: { ...languages, "x-default": "/" } },
@@ -69,8 +89,11 @@ export default async function RootLayout({ children, params }: { children: React
   };
 
   return (
-    <html lang={lang} className={`${cinzel.variable} ${inter.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    <html lang={lang} style={fontVars} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="stylesheet" href={FONTS_CSS} />
         <script dangerouslySetInnerHTML={{ __html: bootScript }} />
         <noscript>
           <style>{`.intro{display:none!important}`}</style>
