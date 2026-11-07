@@ -42,11 +42,20 @@ function str(form: FormData, key: string) {
   return typeof v === "string" ? v.trim() : "";
 }
 
+const REQUIRED_ENV = ["RESEND_API_KEY", "BOOKING_TO_EMAIL", "BOOKING_FROM_EMAIL"] as const;
+
 export async function POST(request: Request) {
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.BOOKING_TO_EMAIL;
   const from = process.env.BOOKING_FROM_EMAIL;
   if (!apiKey || !to || !from) {
+    // Diagnostics for the Vercel logs: only variable NAMES and their state, never their values.
+    const missing = REQUIRED_ENV.filter((name) => process.env[name] === undefined);
+    const empty = REQUIRED_ENV.filter((name) => process.env[name] !== undefined && process.env[name] === "");
+    console.error(
+      `[booking] not configured — missing: ${missing.join(", ") || "none"}; empty: ${empty.join(", ") || "none"}; ` +
+        `environment: ${process.env.VERCEL_ENV || "unknown"}; deployment: ${process.env.VERCEL_URL || "unknown"}`,
+    );
     return json({ ok: false, error: "not_configured" }, 503);
   }
 
